@@ -5,6 +5,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <stdio.h>
 
 enum
 {
@@ -88,6 +89,22 @@ static GtkWidget *
     return view;
 }
 
+int indent;
+
+void print(gpointer widget, gpointer user_data){
+    printf("%*c%s\n", indent, ' ',  gtk_widget_get_name(GTK_WIDGET(widget)));
+
+    indent += 2;
+    if (GTK_IS_CONTAINER(widget))
+        gtk_container_foreach(GTK_CONTAINER(widget), (GtkCallback)print, NULL);
+    indent -= 2;
+}
+
+void startprinting(gpointer a, gpointer b){
+    GList* toplevels = gtk_window_list_toplevels();
+    indent = 1;
+    g_list_foreach(toplevels, print, NULL);
+}
 
 int
     main (int argc, char **argv)
@@ -98,14 +115,15 @@ int
     gtk_init (&argc, &argv);
 
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    g_signal_connect (window, "delete_event", gtk_main_quit, NULL); /* dirty */
+    g_signal_connect (window, "destroy", gtk_main_quit, NULL); /* dirty */
+    g_signal_connect (window, "show", (GCallback)startprinting, NULL);
 
     view = create_view_and_model ();
 
     gtk_container_add (GTK_CONTAINER (window), view);
 
     gtk_widget_show_all (window);
-
+ 
     gtk_main ();
 
     return 0;
